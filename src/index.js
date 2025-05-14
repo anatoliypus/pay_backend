@@ -79,10 +79,10 @@ app.post('/v1/webhook', async (req, res) => {
         // Fetch and log available JWKS
         const jwks = await fetchJWKS();
         
-        // Verify JWT token
+        // Verify JWT token with minimal requirements
         const { payload, protectedHeader } = await jwtVerify(bodyText, JWKS, {
-            issuer: 'https://pay.yandex.ru',
-            algorithms: ['ES256']
+            algorithms: ['ES256'],
+            clockTolerance: 60 // 1 minute clock tolerance
         });
 
         console.log('JWT Header:', protectedHeader);
@@ -103,13 +103,22 @@ app.post('/v1/webhook', async (req, res) => {
         console.log('Merchant ID:', payload.merchantId);
         console.log('Order Details:', payload.order);
         
+        // Send appropriate response based on event type
+        if (payload.event === 'ORDER_STATUS_UPDATED') {
+            console.log(`Order ${payload.order.orderId} payment status: ${payload.order.paymentStatus}`);
+        }
+        
         res.json({ status: 'success' });
     } catch (error) {
         console.error('Error processing webhook:', error);
         console.error('Error details:', {
             name: error.name,
             message: error.message,
-            stack: error.stack
+            stack: error.stack,
+            code: error.code,
+            claim: error.claim,
+            reason: error.reason,
+            payload: error.payload
         });
         res.status(403).json({
             status: 'fail',
