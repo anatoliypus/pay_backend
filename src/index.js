@@ -2,6 +2,7 @@ const express = require('express');
 const morgan = require('morgan');
 const bodyParser = require('body-parser');
 const { jwtVerify, createRemoteJWKSet } = require('jose');
+const fetch = require('node-fetch');
 
 require('dotenv').config();
 
@@ -13,6 +14,15 @@ const JWK_ENDPOINTS = {
     sandbox: 'https://sandbox.pay.yandex.ru/api/jwks',
     production: 'https://pay.yandex.ru/api/jwks'
 };
+
+// Function to fetch and log JWK set
+async function fetchJWKS() {
+    const jwksUrl = process.env.NODE_ENV === 'production' ? JWK_ENDPOINTS.production : JWK_ENDPOINTS.sandbox;
+    const response = await fetch(jwksUrl);
+    const jwks = await response.json();
+    console.log('Available JWKS:', JSON.stringify(jwks, null, 2));
+    return jwks;
+}
 
 // Create JWK set for token verification
 const JWKS = createRemoteJWKSet(new URL(process.env.NODE_ENV === 'production' ? JWK_ENDPOINTS.production : JWK_ENDPOINTS.sandbox));
@@ -55,6 +65,14 @@ app.post('/v1/webhook', async (req, res) => {
         const bodyText = req.body.toString('utf-8');
         console.log('Raw JWT:', bodyText);
         
+        // Decode JWT header without verification to get kid
+        const [headerB64] = bodyText.split('.');
+        const header = JSON.parse(Buffer.from(headerB64, 'base64').toString());
+        console.log('JWT Header (decoded):', header);
+
+        // Fetch and log available JWKS
+        const jwks = await fetchJWKS();
+        
         // Verify JWT token
         const { payload, protectedHeader } = await jwtVerify(bodyText, JWKS, {
             issuer: 'https://pay.yandex.ru',
@@ -82,6 +100,11 @@ app.post('/v1/webhook', async (req, res) => {
         res.json({ status: 'success' });
     } catch (error) {
         console.error('Error processing webhook:', error);
+        console.error('Error details:', {
+            name: error.name,
+            message: error.message,
+            stack: error.stack
+        });
         res.status(403).json({
             status: 'fail',
             reasonCode: 'FORBIDDEN',
