@@ -2,7 +2,7 @@ const express = require('express');
 const morgan = require('morgan');
 const bodyParser = require('body-parser');
 const { jwtVerify, createRemoteJWKSet } = require('jose');
-const fetch = require('node-fetch');
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 
 require('dotenv').config();
 
@@ -17,11 +17,17 @@ const JWK_ENDPOINTS = {
 
 // Function to fetch and log JWK set
 async function fetchJWKS() {
-    const jwksUrl = process.env.NODE_ENV === 'production' ? JWK_ENDPOINTS.production : JWK_ENDPOINTS.sandbox;
-    const response = await fetch(jwksUrl);
-    const jwks = await response.json();
-    console.log('Available JWKS:', JSON.stringify(jwks, null, 2));
-    return jwks;
+    try {
+        const jwksUrl = process.env.NODE_ENV === 'production' ? JWK_ENDPOINTS.production : JWK_ENDPOINTS.sandbox;
+        console.log('Fetching JWKS from:', jwksUrl);
+        const response = await fetch(jwksUrl);
+        const jwks = await response.json();
+        console.log('Available JWKS:', JSON.stringify(jwks, null, 2));
+        return jwks;
+    } catch (error) {
+        console.error('Error fetching JWKS:', error);
+        throw error;
+    }
 }
 
 // Create JWK set for token verification
