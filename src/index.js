@@ -7,7 +7,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(express.raw())
+app.use(express.json())
 app.use(morgan('dev')); // HTTP request logger
 
 // Logging middleware for all requests
@@ -31,7 +31,14 @@ app.post('/v1/order/create', (req, res) => {
 
 app.post('/v1/webhook', (req, res) => {
     console.log('Webhook endpoint accessed');
-    console.log('Body:', req.body)
+    const bodyText = req.body.toString('utf-8');
+    console.log('Body:', bodyText);
+    try {
+        const jsonBody = JSON.parse(bodyText);
+        console.log('JSON Body:', jsonBody);
+    } catch (error) {
+        console.error('Error parsing JSON:', error);
+    }
     // console.log('Everything', req)
     res.json({ status: 'success' });
 });
