@@ -1,12 +1,13 @@
 const express = require('express');
 const morgan = require('morgan');
+
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(express.json());
+app.use(express.raw())
 app.use(morgan('dev')); // HTTP request logger
 
 // Logging middleware for all requests
