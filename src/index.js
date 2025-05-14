@@ -54,17 +54,6 @@ app.use((req, res, next) => {
     next();
 });
 
-// Yandex Pay Merchant API endpoints
-app.post('/v1/order/render', (req, res) => {
-    console.log('Order render endpoint accessed');
-    res.json({ status: 'success' });
-});
-
-app.post('/v1/order/create', (req, res) => {
-    console.log('Order create endpoint accessed');
-    res.json({ status: 'success' });
-});
-
 app.post('/v1/webhook', async (req, res) => {
     console.log('Webhook endpoint accessed');
     try {
@@ -126,21 +115,6 @@ app.post('/v1/webhook', async (req, res) => {
             reason: error.message
         });
     }
-});
-
-app.get('/v1/pickup-options', (req, res) => {
-    console.log('Pickup options endpoint accessed');
-    res.json({ status: 'success' });
-});
-
-app.get('/v1/pickup-option-details', (req, res) => {
-    console.log('Pickup option details endpoint accessed');
-    res.json({ status: 'success' });
-});
-
-app.post('/v1/onboard', (req, res) => {
-    console.log('Onboard endpoint accessed');
-    res.json({ status: 'success' });
 });
 
 // Error handling middleware
