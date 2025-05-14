@@ -1,5 +1,6 @@
 const express = require('express');
 const morgan = require('morgan');
+const bodyParser = require('body-parser');
 
 require('dotenv').config();
 
@@ -7,7 +8,16 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(express.json())
+var rawBodySaver = function (req, res, buf, encoding) {
+    if (buf && buf.length) {
+        req.rawBody = buf.toString(encoding || 'utf8');
+    }
+}
+  
+app.use(bodyParser.json({ verify: rawBodySaver }));
+app.use(bodyParser.urlencoded({ verify: rawBodySaver, extended: true }));
+app.use(bodyParser.raw({ verify: rawBodySaver, type: '*/*' }));
+
 app.use(morgan('dev')); // HTTP request logger
 
 // Logging middleware for all requests
@@ -31,13 +41,14 @@ app.post('/v1/order/create', (req, res) => {
 
 app.post('/v1/webhook', (req, res) => {
     console.log('Webhook endpoint accessed');
-    const bodyText = req.body.toString('utf-8');
-    console.log('Body:', bodyText);
     try {
+        console.log('Body:', req.body);
+        const bodyText = req.body.toString('utf-8');
+        console.log('Body:', bodyText);
         const jsonBody = JSON.parse(bodyText);
         console.log('JSON Body:', jsonBody);
     } catch (error) {
-        console.error('Error parsing JSON:', error);
+        console.error('Error:', error);
     }
     // console.log('Everything', req)
     res.json({ status: 'success' });
