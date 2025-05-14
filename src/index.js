@@ -30,6 +30,8 @@ app.post('/v1/order/create', (req, res) => {
 
 app.post('/v1/webhook', (req, res) => {
     console.log('Webhook endpoint accessed');
+    console.log('Body:', req.body)
+    console.log('Everything', JSON.stringify(req))
     res.json({ status: 'success' });
 });
 
