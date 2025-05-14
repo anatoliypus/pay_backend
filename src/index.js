@@ -1,11 +1,21 @@
 const express = require('express');
 const morgan = require('morgan');
 const bodyParser = require('body-parser');
+const { jwtVerify, createRemoteJWKSet } = require('jose');
 
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Yandex Pay JWK endpoints
+const JWK_ENDPOINTS = {
+    sandbox: 'https://sandbox.pay.yandex.ru/api/jwks',
+    production: 'https://pay.yandex.ru/api/jwks'
+};
+
+// Create JWK set for token verification
+const JWKS = createRemoteJWKSet(new URL(process.env.NODE_ENV === 'production' ? JWK_ENDPOINTS.production : JWK_ENDPOINTS.sandbox));
 
 // Middleware
 var rawBodySaver = function (req, res, buf, encoding) {
@@ -39,19 +49,45 @@ app.post('/v1/order/create', (req, res) => {
     res.json({ status: 'success' });
 });
 
-app.post('/v1/webhook', (req, res) => {
+app.post('/v1/webhook', async (req, res) => {
     console.log('Webhook endpoint accessed');
     try {
-        console.log('Body:', req.body);
         const bodyText = req.body.toString('utf-8');
-        console.log('Body:', bodyText);
-        const jsonBody = JSON.parse(bodyText);
-        console.log('JSON Body:', jsonBody);
+        console.log('Raw JWT:', bodyText);
+        
+        // Verify JWT token
+        const { payload, protectedHeader } = await jwtVerify(bodyText, JWKS, {
+            issuer: 'https://pay.yandex.ru',
+            algorithms: ['ES256']
+        });
+
+        console.log('JWT Header:', protectedHeader);
+        console.log('JWT Payload:', payload);
+
+        // Verify merchantId matches your merchant ID
+        if (payload.merchantId !== process.env.YANDEX_MERCHANT_ID) {
+            return res.status(403).json({
+                status: 'fail',
+                reasonCode: 'FORBIDDEN',
+                reason: 'Invalid merchantId'
+            });
+        }
+
+        // Process the webhook payload
+        console.log('Event:', payload.event);
+        console.log('Event Time:', payload.eventTime);
+        console.log('Merchant ID:', payload.merchantId);
+        console.log('Order Details:', payload.order);
+        
+        res.json({ status: 'success' });
     } catch (error) {
-        console.error('Error:', error);
+        console.error('Error processing webhook:', error);
+        res.status(403).json({
+            status: 'fail',
+            reasonCode: 'FORBIDDEN',
+            reason: error.message
+        });
     }
-    // console.log('Everything', req)
-    res.json({ status: 'success' });
 });
 
 app.get('/v1/pickup-options', (req, res) => {
