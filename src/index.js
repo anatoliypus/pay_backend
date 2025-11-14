@@ -56,6 +56,9 @@ app.use((req, res, next) => {
 
 app.post('/v1/webhook', async (req, res) => {
     console.log('Webhook endpoint accessed');
+    console.log(`process.env.YANDEX_MERCHANT_ID: ${process.env.YANDEX_MERCHANT_ID}}`)
+    console.log(`process.env.NODE_ENV: ${process.env.NODE_ENV}`)
+    
     try {
         const bodyText = req.body.toString('utf-8');
         console.log('Raw JWT:', bodyText);
@@ -79,7 +82,7 @@ app.post('/v1/webhook', async (req, res) => {
 
         // Verify merchantId matches your merchant ID
         if (payload.merchantId !== process.env.YANDEX_MERCHANT_ID) {
-            return res.status(403).json({
+            return res.json({
                 status: 'fail',
                 reasonCode: 'FORBIDDEN',
                 reason: 'Invalid merchantId'
@@ -109,7 +112,7 @@ app.post('/v1/webhook', async (req, res) => {
             reason: error.reason,
             payload: error.payload
         });
-        res.status(403).json({
+        res.json({
             status: 'fail',
             reasonCode: 'FORBIDDEN',
             reason: error.message
